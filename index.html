@@ -6,51 +6,473 @@
   <title>MAMR</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <meta name="description" content="MAMR — coming soon.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700;900&family=Space+Grotesk:wght@300;500;700&display=swap">
   <style>
     :root {
-      --bg: #f4f7fb;
-      --text: #1f2d4a;
+      --bg: #050608;
+      --bg-2: #0a0c12;
+      --ink: #f4f6fb;
+      --ink-dim: rgba(244, 246, 251, 0.55);
+      --ink-faint: rgba(244, 246, 251, 0.18);
+      --accent: #cdb3ff;
+      --accent-2: #6f8cff;
     }
 
-    * {
-      box-sizing: border-box;
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
     }
 
     body {
-      margin: 0;
       min-height: 100vh;
-      display: grid;
-      place-items: center;
-      background: var(--bg);
-      color: var(--text);
-      font-family: Inter, Arial, Helvetica, sans-serif;
+      cursor: none;
+    }
+
+    /* ---------- BACKGROUND CANVAS ---------- */
+    #bg {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    /* gradient veil for depth */
+    .veil {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      background:
+        radial-gradient(120% 80% at 50% -10%, rgba(111, 140, 255, 0.18), transparent 60%),
+        radial-gradient(80% 60% at 50% 110%, rgba(205, 179, 255, 0.12), transparent 60%),
+        linear-gradient(to bottom, rgba(5,6,8,0) 0%, rgba(5,6,8,0.4) 100%);
+      mix-blend-mode: screen;
+    }
+
+    .grain {
+      position: fixed;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
+      opacity: 0.06;
+      mix-blend-mode: overlay;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.6 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    }
+
+    /* ---------- LAYOUT ---------- */
+    .shell {
+      position: relative;
+      z-index: 3;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
     }
 
     main {
+      flex: 1;
+      display: grid;
+      place-items: center;
+      padding: 40px 24px;
       text-align: center;
-      padding: 32px;
     }
+
+    .hero { position: relative; }
 
     h1 {
-      margin: 0 0 48px;
-      font-size: clamp(72px, 13vw, 160px);
-      line-height: 0.9;
-      letter-spacing: -0.07em;
-      font-weight: 900;
+      font-family: 'Space Grotesk', 'Inter', sans-serif;
+      font-weight: 700;
+      font-size: clamp(80px, 14vw, 200px);
+      line-height: 0.86;
+      letter-spacing: -0.055em;
+      margin-bottom: 56px;
+      will-change: transform;
     }
 
-    p {
-      margin: 0;
-      font-size: clamp(20px, 3vw, 34px);
-      line-height: 1.25;
-      letter-spacing: -0.02em;
+    h1 .row { display: block; }
+
+    h1 .ch {
+      display: inline-block;
+      transform: translateY(120%);
+      opacity: 0;
+      will-change: transform, opacity;
+    }
+
+    h1 .ch.gradient {
+      background: linear-gradient(180deg, #ffffff 0%, #b9c3e8 55%, #6f8cff 100%);
+      -webkit-background-clip: text;
+              background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .lede {
+      font-family: 'Inter', sans-serif;
+      font-weight: 300;
+      font-size: clamp(18px, 2.2vw, 26px);
+      line-height: 1.35;
+      letter-spacing: -0.01em;
+      color: var(--ink-dim);
+      max-width: 640px;
+      margin: 0 auto;
+      opacity: 0;
+      transform: translateY(24px);
+      will-change: transform, opacity;
+    }
+
+    .lede strong {
+      color: var(--ink);
+      font-weight: 500;
+    }
+
+    /* ---------- CUSTOM CURSOR ---------- */
+    .cursor, .cursor-ring {
+      position: fixed;
+      top: 0; left: 0;
+      pointer-events: none;
+      z-index: 9999;
+      mix-blend-mode: difference;
+    }
+    .cursor {
+      width: 6px; height: 6px;
+      background: #fff;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      transition: width .25s ease, height .25s ease, background .25s ease;
+    }
+    .cursor-ring {
+      width: 38px; height: 38px;
+      border: 1px solid rgba(255,255,255,0.55);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      transition: width .35s ease, height .35s ease, border-color .35s ease, opacity .35s ease;
+    }
+    .cursor.is-hover { width: 14px; height: 14px; }
+    .cursor-ring.is-hover { width: 64px; height: 64px; border-color: rgba(205, 179, 255, 0.9); }
+
+    @media (hover: none) {
+      body { cursor: auto; }
+      .cursor, .cursor-ring { display: none; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+      h1 .ch { transform: none; opacity: 1; }
+      .lede { transform: none; opacity: 1; }
     }
   </style>
 </head>
 <body>
-  <main>
-    <h1>Coming<br>SOON..</h1>
-    <p>Something new is on the way.<br>Stay tuned!</p>
-  </main>
+  <canvas id="bg"></canvas>
+  <div class="veil"></div>
+  <div class="grain"></div>
+
+  <div class="cursor-ring" id="cursorRing"></div>
+  <div class="cursor" id="cursor"></div>
+
+  <div class="shell">
+    <main>
+      <div class="hero">
+        <h1 id="title" aria-label="Coming SOON..">
+          <span class="row" data-row>Coming</span>
+          <span class="row gradient-row" data-row>SOON<span class="dots">..</span></span>
+        </h1>
+
+        <p class="lede" id="lede">
+          Something new is on the way.<br>
+          <strong>Stay tuned!</strong>
+        </p>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    /* =====================================================
+       1. WEBGL BACKGROUND  —  flow-noise reacting to cursor
+       ===================================================== */
+    (function initBackground() {
+      const canvas = document.getElementById('bg');
+      const gl = canvas.getContext('webgl', { antialias: true, premultipliedAlpha: false });
+
+      if (!gl) {
+        // graceful fallback: CSS gradient stays visible
+        canvas.style.display = 'none';
+        return;
+      }
+
+      const vert = `
+        attribute vec2 a_pos;
+        void main() { gl_Position = vec4(a_pos, 0.0, 1.0); }
+      `;
+
+      const frag = `
+        precision highp float;
+        uniform vec2  u_res;
+        uniform float u_time;
+        uniform vec2  u_mouse;
+
+        // hash + noise
+        float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+        float noise(vec2 p) {
+          vec2 i = floor(p), f = fract(p);
+          float a = hash(i);
+          float b = hash(i + vec2(1.0, 0.0));
+          float c = hash(i + vec2(0.0, 1.0));
+          float d = hash(i + vec2(1.0, 1.0));
+          vec2 u = f*f*(3.0 - 2.0*f);
+          return mix(a,b,u.x) + (c-a)*u.y*(1.0-u.x) + (d-b)*u.x*u.y;
+        }
+        float fbm(vec2 p) {
+          float v = 0.0, a = 0.5;
+          for (int i = 0; i < 5; i++) { v += a*noise(p); p *= 2.02; a *= 0.5; }
+          return v;
+        }
+
+        void main() {
+          vec2 uv = (gl_FragCoord.xy - 0.5 * u_res) / min(u_res.x, u_res.y);
+          vec2 m  = (u_mouse - 0.5 * u_res) / min(u_res.x, u_res.y);
+
+          float t = u_time * 0.06;
+
+          // domain warp
+          vec2 q = vec2(fbm(uv * 1.6 + t), fbm(uv * 1.6 - t + 4.7));
+          vec2 r = vec2(fbm(uv * 2.0 + q + vec2(1.7,9.2) + 0.15*t),
+                        fbm(uv * 2.0 + q + vec2(8.3,2.8) + 0.13*t));
+          float f = fbm(uv * 1.4 + 1.4 * r + t);
+
+          // mouse influence — soft halo that follows cursor
+          float d = length(uv - m);
+          float halo = exp(-d * 2.4) * 0.55;
+          f += halo;
+
+          // palette: deep navy → violet → soft blue highlights
+          vec3 c1 = vec3(0.020, 0.024, 0.040);  // near-black
+          vec3 c2 = vec3(0.055, 0.070, 0.150);  // deep blue
+          vec3 c3 = vec3(0.435, 0.380, 0.760);  // violet
+          vec3 c4 = vec3(0.780, 0.820, 1.000);  // soft white-blue
+
+          vec3 col = mix(c1, c2, smoothstep(0.20, 0.55, f));
+          col      = mix(col, c3, smoothstep(0.55, 0.78, f) * 0.85);
+          col      = mix(col, c4, smoothstep(0.82, 0.98, f) * 0.55);
+
+          // vignette
+          float vig = smoothstep(1.25, 0.20, length(uv));
+          col *= 0.55 + 0.55 * vig;
+
+          // subtle grain
+          col += (hash(gl_FragCoord.xy + u_time) - 0.5) * 0.025;
+
+          gl_FragColor = vec4(col, 1.0);
+        }
+      `;
+
+      function compile(type, src) {
+        const s = gl.createShader(type);
+        gl.shaderSource(s, src);
+        gl.compileShader(s);
+        if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+          console.warn(gl.getShaderInfoLog(s));
+          return null;
+        }
+        return s;
+      }
+
+      const vs = compile(gl.VERTEX_SHADER, vert);
+      const fs = compile(gl.FRAGMENT_SHADER, frag);
+      if (!vs || !fs) { canvas.style.display = 'none'; return; }
+
+      const prog = gl.createProgram();
+      gl.attachShader(prog, vs);
+      gl.attachShader(prog, fs);
+      gl.linkProgram(prog);
+      gl.useProgram(prog);
+
+      const buf = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+      gl.bufferData(gl.ARRAY_BUFFER,
+        new Float32Array([-1,-1, 1,-1, -1,1, -1,1, 1,-1, 1,1]),
+        gl.STATIC_DRAW);
+
+      const loc = gl.getAttribLocation(prog, 'a_pos');
+      gl.enableVertexAttribArray(loc);
+      gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+
+      const uRes   = gl.getUniformLocation(prog, 'u_res');
+      const uTime  = gl.getUniformLocation(prog, 'u_time');
+      const uMouse = gl.getUniformLocation(prog, 'u_mouse');
+
+      const mouse = { x: window.innerWidth * 0.5, y: window.innerHeight * 0.5 };
+      const target = { x: mouse.x, y: mouse.y };
+
+      function resize() {
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width  = Math.floor(window.innerWidth  * dpr);
+        canvas.height = Math.floor(window.innerHeight * dpr);
+        canvas.style.width  = window.innerWidth  + 'px';
+        canvas.style.height = window.innerHeight + 'px';
+        gl.viewport(0, 0, canvas.width, canvas.height);
+      }
+      resize();
+      window.addEventListener('resize', resize);
+
+      window.addEventListener('pointermove', (e) => {
+        target.x = e.clientX * (window.devicePixelRatio || 1);
+        target.y = (window.innerHeight - e.clientY) * (window.devicePixelRatio || 1);
+      });
+
+      const start = performance.now();
+      function frame(now) {
+        // ease mouse for smooth follow
+        mouse.x += (target.x - mouse.x) * 0.06;
+        mouse.y += (target.y - mouse.y) * 0.06;
+
+        gl.uniform2f(uRes, canvas.width, canvas.height);
+        gl.uniform1f(uTime, (now - start) * 0.001);
+        gl.uniform2f(uMouse, mouse.x, mouse.y);
+        gl.drawArrays(gl.TRIANGLES, 0, 6);
+        requestAnimationFrame(frame);
+      }
+      requestAnimationFrame(frame);
+    })();
+
+    /* =====================================================
+       2. CUSTOM CURSOR + MAGNETIC ELEMENTS
+       ===================================================== */
+    (function initCursor() {
+      if (matchMedia('(hover: none)').matches) return;
+
+      const dot  = document.getElementById('cursor');
+      const ring = document.getElementById('cursorRing');
+
+      const pos    = { x: innerWidth/2, y: innerHeight/2 };
+      const target = { x: innerWidth/2, y: innerHeight/2 };
+      const ringPos = { x: pos.x, y: pos.y };
+
+      window.addEventListener('pointermove', (e) => {
+        target.x = e.clientX;
+        target.y = e.clientY;
+      });
+
+      function tick() {
+        // dot moves nearly instantly
+        pos.x += (target.x - pos.x) * 0.55;
+        pos.y += (target.y - pos.y) * 0.55;
+        // ring lags
+        ringPos.x += (target.x - ringPos.x) * 0.16;
+        ringPos.y += (target.y - ringPos.y) * 0.16;
+
+        dot.style.transform  = `translate(${pos.x}px, ${pos.y}px) translate(-50%, -50%)`;
+        ring.style.transform = `translate(${ringPos.x}px, ${ringPos.y}px) translate(-50%, -50%)`;
+        requestAnimationFrame(tick);
+      }
+      tick();
+
+      // hover state on interactive elements
+      const hoverables = document.querySelectorAll('a, button, [data-magnetic]');
+      hoverables.forEach(el => {
+        el.addEventListener('pointerenter', () => {
+          dot.classList.add('is-hover');
+          ring.classList.add('is-hover');
+        });
+        el.addEventListener('pointerleave', () => {
+          dot.classList.remove('is-hover');
+          ring.classList.remove('is-hover');
+          el.style.transform = '';
+        });
+      });
+
+      // magnetic pull
+      const magnets = document.querySelectorAll('[data-magnetic]');
+      magnets.forEach(el => {
+        el.addEventListener('pointermove', (e) => {
+          const rect = el.getBoundingClientRect();
+          const cx = rect.left + rect.width  / 2;
+          const cy = rect.top  + rect.height / 2;
+          const dx = (e.clientX - cx) * 0.35;
+          const dy = (e.clientY - cy) * 0.35;
+          el.style.transform = `translate(${dx}px, ${dy}px)`;
+          el.style.transition = 'transform .12s ease-out';
+        });
+        el.addEventListener('pointerleave', () => {
+          el.style.transition = 'transform .55s cubic-bezier(.2,.8,.2,1)';
+          el.style.transform = '';
+        });
+      });
+    })();
+
+    /* =====================================================
+       3. TITLE SPLIT + REVEAL + PARALLAX
+       ===================================================== */
+    (function initTitle() {
+      const title = document.getElementById('title');
+      const lede  = document.getElementById('lede');
+      const rows  = title.querySelectorAll('[data-row]');
+      const gradientRow = title.querySelector('.gradient-row');
+
+      // split each row into characters
+      const allChars = [];
+      rows.forEach((row) => {
+        const text = row.textContent;
+        row.textContent = '';
+        for (const c of text) {
+          const span = document.createElement('span');
+          span.className = 'ch';
+          if (row === gradientRow) span.classList.add('gradient');
+          span.textContent = c === ' ' ? ' ' : c;
+          row.appendChild(span);
+          allChars.push(span);
+        }
+      });
+
+      // animate in
+      allChars.forEach((ch, i) => {
+        const delay = 120 + i * 45;
+        setTimeout(() => {
+          ch.style.transition = 'transform .9s cubic-bezier(.2,.85,.25,1), opacity .9s ease';
+          ch.style.transform = 'translateY(0)';
+          ch.style.opacity = '1';
+        }, delay);
+      });
+
+      setTimeout(() => {
+        lede.style.transition = 'transform 1.1s cubic-bezier(.2,.85,.25,1), opacity 1.1s ease';
+        lede.style.transform = 'translateY(0)';
+        lede.style.opacity = '1';
+      }, 120 + allChars.length * 45 + 200);
+
+      // mouse parallax on each character
+      const px = { x: 0, y: 0 };
+      const pt = { x: 0, y: 0 };
+
+      window.addEventListener('pointermove', (e) => {
+        pt.x = (e.clientX / innerWidth  - 0.5) * 2;   // -1 .. 1
+        pt.y = (e.clientY / innerHeight - 0.5) * 2;
+      });
+
+      function loop() {
+        px.x += (pt.x - px.x) * 0.08;
+        px.y += (pt.y - px.y) * 0.08;
+        allChars.forEach((ch, i) => {
+          const depth = 6 + (i % 5) * 2.2;
+          ch.style.translate = `${px.x * depth}px ${px.y * depth * 0.6}px`;
+        });
+        title.style.translate = `${px.x * -10}px ${px.y * -6}px`;
+        requestAnimationFrame(loop);
+      }
+      loop();
+    })();
+
+  </script>
 </body>
 </html>
